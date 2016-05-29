@@ -43,8 +43,11 @@ object VerticalBoxBlur {
    *  bottom.
    */
   def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit = {
-    // TODO implement this method using the `boxBlurKernel` method
-    ???
+    for (x <- from until end) {
+      for (y <- 0 until src.height) {
+        dst.update(x, y, boxBlurKernel(src, x, y, radius))
+      }
+    }
   }
 
   /** Blurs the columns of the source image in parallel using `numTasks` tasks.
@@ -54,8 +57,17 @@ object VerticalBoxBlur {
    *  columns.
    */
   def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
-    // TODO implement using the `task` construct and the `blur` method
-    ???
+    val (q, r) = (src.height / numTasks, src.width % numTasks)
+    val tasks = (1 until numTasks).scanLeft((0, if (0 < r) q + 1 else q))((a, c) => {
+      if (c < r) {
+        (a._2, a._2 + q + 1)
+      } else {
+        (a._2, a._2 + q)
+      }
+    }).map(part => {
+      task(blur(src, dst, part._1, part._2, radius))
+    })
+      .toList
+    tasks.map(_.join)
   }
-
 }
